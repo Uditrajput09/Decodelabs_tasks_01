@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>BLOCKSMITH // Mini-Blockchain Explorer & PoW Studio</title>
+
+  <!-- Modern Typography from Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- Ambient background glow layers -->
+  <div class="ambient-glow glow-1"></div>
+  <div class="ambient-glow glow-2"></div>
+  <div class="ambient-glow glow-3"></div>
+
+  <!-- Top Navigation Header -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+          <polyline points="2 17 12 22 22 17"></polyline>
+          <polyline points="2 12 12 17 22 12"></polyline>
+        </svg>
+      </div>
+      <div class="brand-text">
+        <span class="brand-title">BLOCKSMITH</span>
+        <span class="brand-subtitle">Project 1 // Mini-Blockchain Explorer & PoW Studio</span>
+      </div>
+    </div>
+
+    <!-- Live Status & Quick Action Buttons -->
+    <div class="header-actions">
+      <div id="connectionStatus" class="status-pill status-connected">
+        <span class="status-dot"></span>
+        <span id="connectionText">Checking Connection...</span>
+      </div>
+
+      <div id="chainHealthBadge" class="status-pill health-valid">
+        <span class="health-icon">🛡️</span>
+        <span id="chainHealthText">Chain Verified</span>
+      </div>
+
+      <button id="btnAuditChain" class="btn btn-secondary" title="Audit Stored Hash Integrity & Prev-Hash Linkage">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+          <polyline points="22 4 12 14.01 9 11.01"></polyline>
+        </svg>
+        Audit Chain
+      </button>
+
+      <button id="btnResetChain" class="btn btn-ghost" title="Reset Blockchain to Sample State">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"></path>
+          <path d="M21 3v5h-5"></path>
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"></path>
+          <path d="M8 16H3v5"></path>
+        </svg>
+        Reset
+      </button>
+    </div>
+  </header>
+
+  <!-- Metric Badges Ribbon -->
+  <section class="metrics-ribbon">
+    <div class="metric-card">
+      <div class="metric-label">BLOCK HEIGHT</div>
+      <div class="metric-value" id="statHeight">0</div>
+      <div class="metric-sub" id="statHeightSub">Genesis block initialized</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">PROOF OF WORK TARGET</div>
+      <div class="metric-value cyan" id="statDifficulty">Difficulty 3</div>
+      <div class="metric-sub" id="statTargetPrefix">Target: prefix "000" (~4,096 hashes)</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">CIRCULATING REWARDS</div>
+      <div class="metric-value gold" id="statSupply">150.00 COINS</div>
+      <div class="metric-sub">50.00 coins / mined block</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">MEMPOOL POOL</div>
+      <div class="metric-value purple" id="statMempool">0 Tx</div>
+      <div class="metric-sub">Unconfirmed transactions pending</div>
+    </div>
+  </section>
+
+  <!-- Validation Alert Box (Revealed when Chain is Broken) -->
+  <div id="validationAlert" class="validation-alert hidden">
+    <div class="alert-icon">⚠️</div>
+    <div class="alert-body">
+      <div class="alert-title" id="alertTitle">Blockchain Compromised!</div>
+      <div class="alert-desc" id="alertDescription">A cryptographic violation was detected.</div>
+    </div>
+    <button id="btnDismissAlert" class="btn-icon">&times;</button>
+  </div>
+
+  <!-- Main Grid Workspace -->
+  <main class="app-layout">
+    <!-- Left Column: Blockchain Ledger Timeline -->
+    <section class="ledger-section">
+      <div class="section-header">
+        <div class="section-title-wrap">
+          <h2 class="section-title">Cryptographic Ledger Chain</h2>
+          <span class="section-badge" id="blockCountBadge">3 Blocks</span>
+        </div>
+        <div class="section-legend">
+          <span class="legend-item"><span class="legend-dot green"></span> Valid Link</span>
+          <span class="legend-item"><span class="legend-dot red"></span> Severed Link</span>
+          <span class="legend-item"><span class="legend-dot amber"></span> Tampered Data</span>
+        </div>
+      </div>
+
+      <!-- Scrollable Block Stream -->
+      <div id="blocksContainer" class="blocks-container">
+        <!-- Rendered dynamically by app.js -->
+        <div class="loading-state">
+          <div class="spinner"></div>
+          <p>Syncing blockchain state...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: Interactive Studios & Control Panels -->
+    <aside class="sidebar-studios">
+
+      <!-- Studio 1: Proof-of-Work Mining Studio -->
+      <div class="studio-card">
+        <div class="studio-header">
+          <h3 class="studio-title">
+            <span class="studio-icon">⛏️</span> Proof-of-Work Mining Studio
+          </h3>
+          <span class="studio-badge" id="miningStatusBadge">Ready</span>
+        </div>
+
+        <div class="studio-body">
+          <div class="form-group">
+            <div class="slider-label-row">
+              <label for="difficultySlider">Consensus Difficulty Target:</label>
+              <span class="slider-val" id="difficultyVal">3 ("000")</span>
+            </div>
+            <input type="range" id="difficultySlider" min="1" max="5" value="3" step="1">
+            <div class="slider-scale">
+              <span>Diff 1 (Fast)</span>
+              <span>Diff 3 (Balanced)</span>
+              <span>Diff 5 (Heavy)</span>
+            </div>
+          </div>
+
+          <!-- Live Mining Gauge -->
+          <div id="miningGauge" class="mining-gauge">
+            <div class="gauge-row">
+              <span class="gauge-title">Candidate Nonce:</span>
+              <span class="gauge-mono" id="liveNonce">0</span>
+            </div>
+            <div class="gauge-row">
+              <span class="gauge-title">Hash Candidate:</span>
+              <span class="gauge-mono-small"
+                id="liveHash">0000000000000000000000000000000000000000000000000000000000000000</span>
+            </div>
+            <div class="gauge-stats-row">
+              <div>Attempts: <strong id="liveAttempts">0</strong></div>
+              <div>Elapsed: <strong id="liveTimer">0.00s</strong></div>
+              <div>Speed: <strong id="liveHashRate">0 H/s</strong></div>
+            </div>
+          </div>
+
+          <div class="form-group mt-3">
+            <label for="minerSelect">Miner Beneficiary (Receives 50.0 Coinbase):</label>
+            <select id="minerSelect" class="form-control">
+              <option value="Miner_Sam">Miner_Sam (Default Miner)</option>
+              <option value="Alice">Alice</option>
+              <option value="Bob">Bob</option>
+              <option value="Charlie">Charlie</option>
+            </select>
+          </div>
+
+          <button id="btnMineBlock" class="btn btn-primary btn-block">
+            <span class="btn-icon">⛏️</span> Mine Next Block
+          </button>
+        </div>
+      </div>
+
+      <!-- Studio 2: Mempool & Transactions -->
+      <div class="studio-card">
+        <div class="studio-header">
+          <h3 class="studio-title">
+            <span class="studio-icon">💸</span> Mempool & Wallet Balances
+          </h3>
+          <span class="studio-badge" id="mempoolBadge">0 Pending</span>
+        </div>
+
+        <div class="studio-body">
+          <!-- Account Balances Grid -->
+          <div class="balances-grid" id="balancesGrid">
+            <!-- Dynamically populated -->
+          </div>
+
+          <!-- Transaction Form -->
+          <form id="txForm" class="tx-form">
+            <div class="form-row">
+              <div class="form-group flex-1">
+                <label for="txSender">Sender:</label>
+                <select id="txSender" class="form-control">
+                  <option value="Miner_Sam">Miner_Sam</option>
+                  <option value="Alice">Alice</option>
+                  <option value="Bob">Bob</option>
+                  <option value="Charlie">Charlie</option>
+                </select>
+              </div>
+              <div class="form-group flex-1">
+                <label for="txReceiver">Receiver:</label>
+                <select id="txReceiver" class="form-control">
+                  <option value="Alice">Alice</option>
+                  <option value="Bob">Bob</option>
+                  <option value="Charlie">Charlie</option>
+                  <option value="Dave">Dave</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="txAmount">Amount (Coins):</label>
+              <input type="number" id="txAmount" class="form-control" min="0.1" step="0.5" value="10.0" required>
+            </div>
+
+            <button type="submit" class="btn btn-accent btn-block">
+              Add to Mempool
+            </button>
+          </form>
+
+          <!-- Pending Pool List -->
+          <div class="mempool-list-wrap mt-3">
+            <div class="mempool-list-header">
+              <span>Unconfirmed Transactions</span>
+              <button id="btnClearMempool" class="btn-text">Clear</button>
+            </div>
+            <div id="mempoolList" class="mempool-list">
+              <div class="empty-mempool">No transactions in mempool</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Studio 3: Tamper & Cascading Failure Lab -->
+      <div class="studio-card border-danger">
+        <div class="studio-header">
+          <h3 class="studio-title danger">
+            <span class="studio-icon">🚨</span> Tamper & Cascading Failure Lab
+          </h3>
+          <span class="studio-badge badge-danger">Security Test</span>
+        </div>
+
+        <div class="studio-body">
+          <p class="studio-desc">
+            Directly test how cryptographic hashes protect against unauthorized modifications and why rewriting history
+            requires re-mining every subsequent block.
+          </p>
+
+          <div class="tamper-actions-grid">
+            <button id="btnTamperPreset" class="btn btn-danger btn-block">
+              <span class="btn-icon">⚡</span> 1. Tamper Block #1 (Alice &rarr; Eve $1,000)
+            </button>
+            <button id="btnRemineBlock1" class="btn btn-warning btn-block" disabled>
+              <span class="btn-icon">🔨</span> 2. Re-mine Block #1 Only (Cascade Breakdown)
+            </button>
+            <button id="btnRepairChain" class="btn btn-success btn-block" disabled>
+              <span class="btn-icon">🛡️</span> 3. Repair Entire Remaining Chain
+            </button>
+          </div>
+
+          <div class="tamper-notes" id="tamperNotes">
+            <strong>Educational Insight:</strong> Click "Tamper Block #1" to observe Check 1 (Stored Hash Integrity)
+            failure. Then click "Re-mine Block #1" to witness Check 2 (Linkage) cascade failure on Block #2.
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- Modal: Merkle Tree Visualizer -->
+  <dialog id="merkleModal" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 class="dialog-title" id="merkleModalTitle">Binary Merkle Tree Inspector</h3>
+        <button id="btnCloseMerkleModal" class="btn-icon">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <p class="dialog-desc">
+          Binary Merkle trees pair and hash transactions recursively until producing the single <strong>Merkle
+            Root</strong> embedded in the block header.
+        </p>
+        <div id="merkleTreeCanvas" class="merkle-tree-canvas">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Modal: Edit / Tamper Block Data -->
+  <dialog id="tamperModal" class="app-dialog">
+    <div class="dialog-content">
+      <div class="dialog-header">
+        <h3 class="dialog-title" id="tamperModalTitle">Tamper Block Payload</h3>
+        <button id="btnCloseTamperModal" class="btn-icon">&times;</button>
+      </div>
+      <div class="dialog-body">
+        <p class="dialog-desc">
+          Directly modify this block's transaction payload without updating the nonce or hash.
+        </p>
+        <div class="form-group">
+          <label for="tamperPayloadJson">JSON Payload Data:</label>
+          <textarea id="tamperPayloadJson" class="form-control code-area" rows="8"></textarea>
+        </div>
+        <div class="dialog-actions">
+          <button id="btnCancelTamper" class="btn btn-secondary">Cancel</button>
+          <button id="btnConfirmTamper" class="btn btn-danger">Commit Tampered Data</button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="toast-container"></div>
+
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+
+</html>
